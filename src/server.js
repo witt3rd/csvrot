@@ -1,48 +1,61 @@
 import Papa from "papaparse";
+import fs from "fs";
 
-const Types = {
-  INT: 0,
-  FLOAT: 1,
-  STRING: 2,
-  BOOLEAN: 3,
-  DATE: 4,
-  JSON: 5
-};
+const ExpectedIn =
+  "/home/dthompson/src/maana/q/public/q-tutorials/claroil/well-opportunity/data/WellTest-Case-ExpectedRates-Rev0.csv";
+const ExpectedOut =
+  "/home/dthompson/src/maana/q/public/q-tutorials/claroil/well-opportunity/data/expected.csv";
+const MeasuredIn =
+  "/home/dthompson/src/maana/q/public/q-tutorials/claroil/well-opportunity/data/MeasuredRates-Month_01.csv";
+const MeasuredOut =
+  "/home/dthompson/src/maana/q/public/q-tutorials/claroil/well-opportunity/data/measured.csv";
 
-const tryParse = (list, type) => {
-  try {
-    const parseResults = Papa.parse(list, { dynamicTyping: true });
-    const rawList = parseResults.data[0];
-    const typedList = rawList.map(x => {
-      switch (type) {
-        case Types.BOOLEAN:
-          return x === true;
-        case Types.DATE:
-          return x;
-        case Types.FLOAT:
-          return parseFloat(x);
-        case Types.INT:
-          return parseInt(x);
-        case Types.JSON:
-          return x;
-        case Types.STRING:
-          return x;
+const rotate = (inPath, outPath) => {
+  Papa.parse(fs.createReadStream(inPath), {
+    complete: results => {
+      const { data, errors, meta } = results;
+      const writeStream = fs.createWriteStream(outPath);
+
+      // calculate table dimensions
+      const rows = data.length - 2;
+      const cols = data[0].length;
+
+      // the names of the wells are stored in the column headers
+      const wellIdx = data[0];
+
+      // the name of the metrics are stored in the second set of column headers
+      const rateIdx = data[1];
+
+      // write headers
+      writeStream.write(rateIdx.slice(0, 7).join(",") + "\n");
+
+      // process each set of well data per date
+      for (let i = 2; i < rows; i++) {
+        const row = data[i];
+        const date = row[0];
+        let out = [];
+        for (let j = 1; j < cols; j++) {
+          // each well has 6 readings
+          const k = (j - 1) % 6;
+
+          // initialize new output row
+          if (k === 0) {
+            const wellName = wellIdx[j];
+            out = [date, wellName];
+          }
+
+          out.push(row[j]);
+
+          // flush on last metric for well
+          if (k === 5) {
+            writeStream.write(out.join(",") + "\n");
+          }
+        }
       }
-    });
-    console.log(typedList);
-    return typedList;
-  } catch (error) {
-    console.log("Exception", error);
-  }
-  return [];
+      writeStream.end();
+    }
+  });
 };
 
-tryParse("1,2,3", Types.INT);
-tryParse("1.1,2.2,3.3", Types.FLOAT);
-tryParse("a,b,c", Types.STRING);
-tryParse("true,true,false", Types.BOOLEAN);
-tryParse('"01/01/2001","02/02/2002","03/03/2003"', Types.DATE);
-tryParse('"{""foo":""bar""}","{""baz"":true,"{""qux"":3.14}"', Types.JSON);
-tryParse('"{""foo":{""baz"":true,""qux"":3.14}}"', Types.JSON);
-
-tryParse("l;,844&", Types.INT);
+rotate(ExpectedIn, ExpectedOut);
+rotate(MeasuredIn, MeasuredOut);
