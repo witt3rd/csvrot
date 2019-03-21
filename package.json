@@ -1,0 +1,25 @@
+{
+  "name": "node-basic",
+  "version": "1.0.0",
+  "description": "basic node project template",
+  "main": "src/server.js",
+  "repository": "git@github.com:witt3rd/templates.git",
+  "scripts": {
+    "start": "nodemon --exec babel-node src/server.js",
+    "build": "babel src --out-dir dist",
+    "serve": "node dist/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.3.4",
+    "@babel/node": "^7.2.2",
+    "@babel/preset-env": "^7.3.4",
+    "nodemon": "^1.18.10"
+  },
+  "dependencies": {
+    "papaparse": "^4.6.3"
+  }
+}
